@@ -74,6 +74,8 @@ SELECT geohistorical_object.enable_disable_geohistorical_object(  'the_ne_table_
 ~~~~
 
 ### Use your new geohistorical object. ### 
-	For instance, adding a new building object related to the previous Cassini map example would be :
-	`INSERT INTO my_cassini_geohistorical_object VALUES ('building at angle between rue de la paix and rue du temple',...)`
+For instance, adding a new building object related to the previous Cassini map example would be :
+~~~~	
+INSERT INTO my_cassini_geohistorical_object VALUES ('building at angle between rue de la paix and rue du temple',...)
+~~~~	
 
