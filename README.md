@@ -1,4 +1,3 @@
-
 # Geohistorical object#
 
 This postgres extension proposes tools to deal with geohistorical object within postgres.
@@ -12,13 +11,12 @@ Using this extension is a simple, clean, efficient and futur proof way to deal w
 This extension use postgres inheritance mechanism to simplify your life.
 
 When you need to store geohistorical object, simply create a table that inherits `geohistorical_object.geohistorical_object`,
-and register this new table with the function `enable_disable_geohistorical_object(your table name)`
-
+and register this new table with the function `enable_disable_geohistorical_object(your table name)`.
 
 ## Dependencies ##
 
-postgres extensions requiered : 
- - Postgis
+[PostgreSQL](https://www.postgresql.org/) extensions required:
+ - [Postgis](http://postgis.net/)
  - [pgsfti](https://github.com/OnroerendErfgoed/pgSFTI) (postgres extension to deal with fuzzy date)
  - unaccent (default built in postgres)
  
