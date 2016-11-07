@@ -21,8 +21,23 @@ and register this new table with the function `enable_disable_geohistorical_obje
  - unaccent (default built in postgres)
  
 ## Install ##
-- Copy the two extension files in the postgres extension folder
-- Execute the statement `CREATE EXTENSION geohistorical_object;`
+- Get the extension and copy the two extension files in the postgres extension folder:
+~~~~
+git clone git@github.com:GeoHistoricalData/geohistorical_objects.git
+cd geohistorical_objects
+sudo make install
+~~~~
+- Install the necessary extensions:
+~~~~
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pgsfti;
+~~~~
+- Install the extension:
+~~~~
+CREATE EXTENSION geohistorical_objects;
+~~~~
 
 ## Example of usage :
 

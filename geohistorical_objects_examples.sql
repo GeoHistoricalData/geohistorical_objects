@@ -1,4 +1,4 @@
-------------------------
+﻿------------------------
 -- Remi Cura, 2016 , Projet Belle Epoque
 -- Geohistorical data project
 ------------------------
@@ -167,7 +167,7 @@ permet de mettre en évidence cette mutation.'
 	INHERITS (geohistorical_object.geohistorical_object) ;
  
 
-	SELECT geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_geohistorical_object',true)
+	SELECT geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_geohistorical_object',true);
 
 
 	 
@@ -200,7 +200,7 @@ permet de mettre en évidence cette mutation.'
 	) INHERITS (test_geohistorical_object,  geohistorical_object.normalised_name_alias)  ; 
 
 	SELECT geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_geohistorical_object_2',true),
-		geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_geohistorical_object_3',true)
+		geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_geohistorical_object_3',true);
 
 
 
@@ -216,7 +216,7 @@ permet de mettre en évidence cette mutation.'
 	my_custom_uid serial PRIMARY KEY -- you can add as amny columns as you want
 	)INHERITS (geohistorical_object.normalised_name_alias)  ;
 
-	SELECT geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_normalised_name_alias',true)
+	SELECT geohistorical_object.enable_disable_geohistorical_object(  'public', 'test_normalised_name_alias',true);
 
 
 	 
