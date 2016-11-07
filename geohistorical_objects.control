@@ -1,0 +1,5 @@
+# geohistorical_object extension
+comment = 'Short extension to properly deal with geohistorical objects'
+default_version = '1.0'
+module_pathname = '$libdir/geohistorical_object'
+relocatable = true
