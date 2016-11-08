@@ -1,20 +1,20 @@
-# Geohistorical object#
+# Geohistorical objects #
 
-This postgres extension proposes tools to deal with geohistorical object within postgres.
+This PostgreSQL extension proposes tools to deal with geohistorical objects within postgres.
 
-Geohistorical object are geographic object (geometry) along with historical object (historical name, link to historical source, date).
+Geohistorical objects are geographic object (geometry) along with historical object (historical name, link to historical source, date).
 
-Using this extension is a simple, clean, efficient and futur proof way to deal with geohistorical objects in database.
+Using this extension is a simple, clean, efficient and future proof way to deal with geohistorical objects in database.
 
 ## Features
 @TODO : add illustration
-This extension use postgres inheritance mechanism to simplify your life.
+This extension uses postgres inheritance mechanism to simplify your life.
 
-When you need to store geohistorical object, simply create a table that inherits `geohistorical_object.geohistorical_object`,
+When you need to store geohistorical objects, simply create a table that inherits `geohistorical_object.geohistorical_object`,
 and register this new table with the function `enable_disable_geohistorical_object(your table name)`.
 
 ## Dependencies ##
-
+First, you obviously need [PostgreSQL](https://www.postgresql.org/) installed. For now, we only tested with versions 9.5 and 9.6.
 [PostgreSQL](https://www.postgresql.org/) extensions required:
  - [Postgis](http://postgis.net/)
  - [pgsfti](https://github.com/OnroerendErfgoed/pgSFTI) (postgres extension to deal with fuzzy date)
@@ -39,11 +39,12 @@ CREATE EXTENSION IF NOT EXISTS pgsfti;
 CREATE EXTENSION geohistorical_objects;
 ~~~~
 
-## Example of usage :
+## Example of usage:
 
- You can look in the dedicated example file.
+You can look in the dedicated example file.
  
- The process to add geohistorical object is always the same :
+The process to add geohistorical object is always the same:
+
 ### Create reference historical source and numerical process. ###
 
 Any geohistorical object must reference an historical source (historical document,etc.). The source is characterized by a unique short name (meaningfull for you), a complete long name, a thourough description, a fuzzy date (for instance, from 1823 to 1854), and the estimated spatial precision of the information contained in the source (for instance, you can estimate that for a given map of buildings, the buildings are precise up to 10 meters).
@@ -56,7 +57,8 @@ Any geohistorical object must reference a numeric process through which the hist
   `'cassini_manual_edit', 'Using the cassini map, a team of users from university XXX created the data set by manually editing the data', '(2015,2016)', '{"default": 0.2, "building":3}' `
 
 ### Create the table you want to use to store geohistorical objects. ###
-It can have any columns/ type, you only have to make it inherit `geohistorical_object.geohistorical_object`. Here is an example :
+It can have any columns / type, you only have to make it inherit `geohistorical_object.geohistorical_object`.
+Here is an example:
 ~~~~
 CREATE TABLE my_cassini_geohistorical_object (
 	my_custom_uid serial PRIMARY KEY 
@@ -67,14 +69,14 @@ CREATE TABLE my_cassini_geohistorical_object (
 	
 ### Register the new table ###
 You have to register the newly created table (only required to do this once). 
-	Registering the table is important, it ensures that the link between objects and historical source are enforced, and it also creates indexes that are going to be essential to efficient usages.
-	To register the table (only needed once), you use the function:	
+Registering the table is important, it ensures that the link between objects and historical source are enforced, and it also creates indexes that are going to be essential to efficient usages.
+To register the table (only needed once), you use the function:
 ~~~~	
 SELECT geohistorical_object.enable_disable_geohistorical_object(  'the_ne_table_schema'::regclass, 'the_new_table_tablename'::regclass, true) ;
 ~~~~
 
 ### Use your new geohistorical object. ### 
-For instance, adding a new building object related to the previous Cassini map example would be :
+For instance, adding a new building object related to the previous Cassini map example would be:
 ~~~~	
 INSERT INTO my_cassini_geohistorical_object VALUES ('building at angle between rue de la paix and rue du temple',...)
 ~~~~	
