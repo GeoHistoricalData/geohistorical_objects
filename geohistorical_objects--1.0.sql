@@ -1,4 +1,4 @@
-------------------------
+﻿------------------------
 -- Remi Cura, 2016 , Projet Belle Epoque
 -- Geohistorical data project
 ------------------------
@@ -70,8 +70,7 @@ ALTER TABLE geohistorical_object.historical_source ADD PRIMARY KEY (short_name) 
 -- default spatial precision represents the overal spatial precision for this source and this object  
 	--for instance, a map representing the position of buildings may suffer from various spatial errors: because of the scale, building may be un precise, manual computing error, topographical error, etc. The default_spatial_precision for this building is the overall spatial error.
 	-- i.e. How much would I need to buffer the geometry to be sure (p>0.99) that the real building is contained by this buffered geometry .
-	
-	
+ 
 
 
 DROP TABLE IF EXISTS geohistorical_object.numerical_origin_process CASCADE; 
@@ -103,24 +102,37 @@ CREATE TABLE IF NOT EXISTS geohistorical_object.geohistorical_object (
 ); 
 
 
-
+-- This table contains the list of relations
+DROP TABLE IF EXISTS geohistorical_object.geohistorical_relations_references CASCADE; 
+CREATE TABLE IF NOT EXISTS geohistorical_object.geohistorical_relations_references (
+	 short_name text PRIMARY KEY--this is a short name uniquely describing the source
+	, full_name text NOT NULL -- this mandatory full name is a more human friendly name, and should be a few words max
+	, description text NOT NULL   
+	, relation_values json -- here the user can put any value type needed
+); 
+ 
 
 -- DONT PUT ANYTHING IN THIS  TABLE, USE INHERITANCE (see test section for an example)
-DROP TABLE IF EXISTS geohistorical_object.normalised_name_alias CASCADE; 
-CREATE TABLE IF NOT EXISTS geohistorical_object.normalised_name_alias(
-	short_historical_source_name_1 text  
+DROP TABLE IF EXISTS geohistorical_object.geohistorical_relation CASCADE; 
+CREATE TABLE IF NOT EXISTS geohistorical_object.geohistorical_relation(
+	short_historical_source_name_1 text REFERENCES geohistorical_object.historical_source (short_name)
 	, normalised_name_1 text NOT NULL  
 	, geom_1 geometry
-	, short_historical_source_name_2 text   
+	, short_historical_source_name_2 text REFERENCES geohistorical_object.historical_source (short_name)
 	, normalised_name_2 text  
 	, geom_2 geometry
-	, relation_name text
-	, UNIQUE (short_historical_source_name_1, normalised_name_1, geom_1, short_historical_source_name_2, normalised_name_2, geom_2) -- this constraint ensure that the same equivalence is not defined several times 
+	, relation_name text REFERENCES geohistorical_object.geohistorical_relations_references (short_name)
+	, UNIQUE (short_historical_source_name_1, normalised_name_1, geom_1
+		  ,short_historical_source_name_2, normalised_name_2,geom_2) -- this constraint ensure that the same equivalence is not defined several times 
 	 , check (false) NO INHERIT
-); 
-
- 
- 
+);  
+CREATE INDEX ON geohistorical_object.geohistorical_relation (short_historical_source_name_1) ; 
+CREATE INDEX ON geohistorical_object.geohistorical_relation (short_historical_source_name_2) ; 
+CREATE INDEX ON geohistorical_object.geohistorical_relation (normalised_name_1) ; 
+CREATE INDEX ON geohistorical_object.geohistorical_relation (normalised_name_2) ; 
+CREATE INDEX ON geohistorical_object.geohistorical_relation (geom_1) ; 
+CREATE INDEX ON geohistorical_object.geohistorical_relation (geom_2) ;
+CREATE INDEX ON geohistorical_object.geohistorical_relation (relation_name) ;
  
  
  -------------------------------
@@ -206,24 +218,21 @@ RETURNS table(constraint_catalog text, constraint_schema text, constraint_name t
 	$BODY$
 LANGUAGE plpgsql  IMMUTABLE STRICT; 
 
-SELECT *
-FROM geohistorical_object.find_foreign_key_between_source_and_target(  'geohistorical_object', 'test_geohistorical_object', 'historical_source','geohistorical_object', 'historical_source', 'short_name' ) ; 
+-- SELECT *
+-- FROM geohistorical_object.find_foreign_key_between_source_and_target(  'geohistorical_object', 'test_geohistorical_object', 'historical_source','geohistorical_object', 'historical_source', 'short_name' ) ; 
 
 
-DROP FUNCTION IF EXISTS geohistorical_object.enable_disable_geohistorical_object(   schema_name text, table_name regclass, activate_desactivate boolean); 
-CREATE OR REPLACE FUNCTION geohistorical_object.enable_disable_geohistorical_object(    schema_name text, table_name regclass, activate_desactivate boolean )
+
+DROP FUNCTION IF EXISTS geohistorical_object.register_geohistorical_object_table(schema_name text, table_name regclass); 
+CREATE OR REPLACE FUNCTION geohistorical_object.register_geohistorical_object_table(schema_name text, table_name regclass)
 RETURNS text AS 
 	$BODY$
 		--@brief : this function takes a table name, check if it inherits from geohistorical_object or normalised_name_alias. If activate is true, add foregin key, else remove it 
-		-- @TODO : add automated index creation
 		DECLARE  
 			_isobj record; 
-			_isalias record; 
+			_isrelation record; 
 			_isobjb boolean;
-			_isaliasb boolean ; 
-			_r record; 
-			_fk_exists record; 
-			_fk_existsb boolean ; 
+			_isrelationb boolean ;  
 			_sql text ; 
 		BEGIN 
 			-- get schema and table name from input
@@ -233,112 +242,108 @@ RETURNS text AS
 				FROM  geohistorical_object.find_all_children_in_inheritance('geohistorical_object.geohistorical_object')
 				WHERE children_table = table_name::regclass::text
 				LIMIT 1 ;
-				SELECT children_table INTO _isalias
-				FROM  geohistorical_object.find_all_children_in_inheritance('geohistorical_object.normalised_name_alias')
+				SELECT children_table INTO _isrelation
+				FROM  geohistorical_object.find_all_children_in_inheritance('geohistorical_object.geohistorical_relation')
 				WHERE children_table = table_name::regclass::text
 				LIMIT 1 ;
 
 				_isobjb := _isobj IS NOT NULL; 
-				_isaliasb := _isalias IS NOT NULL;  
+				_isrelationb := _isrelation IS NOT NULL;  
 
-				RAISE NOTICE 'is this table heriting from "geohistorical_object" : % ; Is this table inheriting from "normalised_name_alias" % ' ,_isobjb,_isaliasb ; 
+				RAISE NOTICE 'is this table heriting from "geohistorical_object" : % ; Is this table inheriting from "normalised_name_alias" % ' ,_isobjb,_isrelationb ; 
 
 				
-			IF _isobjb IS TRUE THEN -- case when we inherit from geohistorical_object.geohistorical_object, we have potentially 2 foreign key to add / delete
-			-- And several indexes (6) 
+			IF _isobjb IS TRUE THEN 
+			-- case when we inherit from geohistorical_object.geohistorical_object
+				-- 2 foreign key to add + 6 indexes to create 
+				
+				_sql := format('
+				ALTER TABLE %1$s.%2$s ADD CONSTRAINT historical_source_short_name FOREIGN KEY (historical_source)
+				REFERENCES geohistorical_object.historical_source (short_name) ; 
+				ALTER TABLE %1$s.%2$s ADD CONSTRAINT numerical_origin_process_short_name FOREIGN KEY (numerical_origin_process)
+				REFERENCES geohistorical_object.numerical_origin_process (short_name); ',schema_name, table_name );
+				raise notice 'ploup' ; 
+				BEGIN
+				    EXECUTE _sql ; 
+				EXCEPTION
+				    WHEN others  THEN
+					 raise notice '% %', SQLERRM, SQLSTATE;
+					RETURN 'error : this table is already registered, you only need to do it once' ; 
+				END;
 
-					FOR  _r IN SELECT 'historical_source' as stn, 'geohistorical_object' as sn, 'historical_source' as tn, 'short_name' AS cn 
-						UNION ALL  SELECT 'numerical_origin_process' as stn, 'geohistorical_object','numerical_origin_process', 'short_name' 
-					LOOP
-						--for each, check if the foreign key exist, if not , create it
-						 SELECT (geohistorical_object.find_foreign_key_between_source_and_target( schema_name::text, table_name::text, _r.stn,_r.sn, _r.tn, _r.cn )).constraint_name INTO _fk_exists; 
-						 RAISE NOTICE 'does the foreign key from %(%) to %(%) already exists? %',table_name, _r.stn, _r.tn, _r.cn,_fk_exists IS NOT NULL;
+				_sql := format('
+				CREATE INDEX %1$s_%2$s_numerical_origin_process_idx
+				ON %1$s.%2$s USING btree (numerical_origin_process);
+				CREATE INDEX %1$s_%2$s_historical_source_idx
+				ON %1$s.%2$s USING btree (historical_source);
+				CREATE INDEX %1$s_%2$s_normalised_name_idx
+				ON %1$s.%2$s USING gin (normalised_name gin_trgm_ops);
+				CREATE INDEX %1$s_%2$s_historical_name_idx
+				ON %1$s.%2$s USING gin (historical_name gin_trgm_ops);
+				CREATE INDEX %1$s_%2$s_geom_idx
+				ON %1$s.%2$s  USING gist (geom);
+				CREATE INDEX %1$s_%2$s_specific_fuzzy_date_idx
+				ON %1$s.%2$s USING gist ((specific_fuzzy_date::geometry));
+				',schema_name, table_name) ; 
 
-						-- si ça existe, desactiver
-						-- si activate est true, tout activer 
-						 IF _fk_exists IS NOT NULL THEN -- foreign key, we have to destroy it
-							RAISE NOTICE '_fk_exists %',_fk_exists ; 
-							-- destroying it
-							_sql := format('ALTER TABLE %I.%I DROP CONSTRAINT %I;  '
-								,schema_name, table_name, _fk_exists.constraint_name ) ; 
-
-							RAISE NOTICE 'sql : %',_sql ; 
-							EXECUTE  _sql ; 
-						END IF ; 
-
-						IF activate_desactivate IS TRUE THEN
-							_sql := format('ALTER TABLE %I.%I
-							ADD CONSTRAINT %s_%s 
-							FOREIGN KEY (%I) 
-							REFERENCES %I.%I ( %I) ; ',schema_name, table_name, _r.tn, _r.cn , _r.stn, _r.sn, _r.tn, _r.cn ) ;  
-							
-							RAISE NOTICE 'sql : %',_sql ; 
-							EXECUTE  _sql ; 
-						END IF ; 
-							 
-					END LOOP; 
-				--checking if the foreign key
+				EXECUTE _sql ;
 			END IF ; -- case of inheriting geohistorical_object.geohistorical_object
 				 
-			IF _isaliasb IS TRUE THEN -- case when we inherit from geohistorical_object.normalised_name_alias, we have potentially  foreign key to add /delete
-					
-					FOR  _r IN SELECT 'short_historical_source_name_1' as stn, 'geohistorical_object' as sn, 'historical_source' as tn, 'short_name' AS cn , 1 as count
-						UNION ALL  SELECT 'short_historical_source_name_2' as stn, 'geohistorical_object','historical_source', 'short_name', 2 as count
-					LOOP
-						--for each, check if the foreign key exist, if not , create it
-						 SELECT (geohistorical_object.find_foreign_key_between_source_and_target( schema_name::text, table_name::text, _r.stn,_r.sn, _r.tn, _r.cn )).constraint_name INTO _fk_exists; 
-						 RAISE NOTICE 'does the foreign key from %(%) to %(%) already exists? %',table_name, _r.stn, _r.tn, _r.cn,_fk_exists IS NOT NULL;
+			IF _isrelationb IS TRUE THEN -- case when we inherit from geohistorical_object.normalised_name_alias, we have potentially  foreign key to add /delete
+				_sql := format('
+				ALTER TABLE %1$s.%2$s
+				ADD CONSTRAINT %1$s_%2$s_relation_name_fkey FOREIGN KEY (relation_name)
+				REFERENCES geohistorical_object.geohistorical_relations_references (short_name) ;
 
-						-- si ça existe, desactiver
-						-- si activate est true, tout activer 
-						 IF _fk_exists IS NOT NULL THEN -- foreign key, we have to destroy it
-							RAISE NOTICE '_fk_exists %',_fk_exists ; 
-							-- destroying it
-							_sql := format('ALTER TABLE %I.%I DROP CONSTRAINT %I;  '
-								,schema_name, table_name, _fk_exists.constraint_name ) ; 
+				ALTER TABLE %1$s.%2$s
+				ADD CONSTRAINT %1$s_%2$s_short_historical_source_name_1_fkey FOREIGN KEY (short_historical_source_name_1)
+				REFERENCES geohistorical_object.historical_source (short_name) ;
 
-							RAISE NOTICE 'sql : %',_sql ; 
-							EXECUTE  _sql ; 
-						END IF ; 
+				ALTER TABLE %1$s.%2$s 
+				ADD CONSTRAINT %1$s_%2$s_short_historical_source_name_2_fkey FOREIGN KEY (short_historical_source_name_2)
+				REFERENCES geohistorical_object.historical_source (short_name) ;
+				',schema_name, table_name);
 
-						IF activate_desactivate IS TRUE THEN
-							_sql := format('ALTER TABLE %I.%I
-							ADD CONSTRAINT %s_%s_%s 
-							FOREIGN KEY (%I) 
-							REFERENCES %I.%I ( %I) ; ',schema_name, table_name, _r.tn, _r.cn , _r.count, _r.stn, _r.sn, _r.tn, _r.cn ) ;  
-							
-							RAISE NOTICE 'sql : %',_sql ; 
-							EXECUTE  _sql ; 
-						END IF ; 
-							 
-					END LOOP; 
-				--checking if the foreign key
+				BEGIN
+				    EXECUTE _sql ; 
+				EXCEPTION
+				    WHEN others  THEN
+					 raise notice '% %', SQLERRM, SQLSTATE;
+					RETURN 'error : this table is already registered, you only need to do it once' ; 
+				END;
+
+				_sql := format(' 
+				CREATE INDEX %1$s_%2$s_geom_1_idx
+				ON %1$s.%2$s USING btree(geom_1);
+
+				CREATE INDEX %1$s_%2$s_geom_2_idx
+				ON %1$s.%2$s USING btree(geom_2);
+
+				CREATE INDEX %1$s_%2$s_normalised_name_1_idx
+				ON %1$s.%2$s USING btree(normalised_name_1); 
+
+				CREATE INDEX %1$s_%2$s_normalised_name_2_idx
+				ON %1$s.%2$s USING btree(normalised_name_2); 
+
+				CREATE INDEX %1$s_%2$s_relation_name_idx
+				ON %1$s.%2$s USING btree (relation_name); 
+
+				CREATE INDEX %1$s_%2$s_short_historical_source_name_1_idx
+				ON %1$s.%2$s USING btree (short_historical_source_name_1);
+
+				CREATE INDEX %1$s_%2$s_short_historical_source_name_2_idx
+				ON %1$s.%2$s USING btree (short_historical_source_name_2);
+				', schema_name, table_name); 
+
+			EXECUTE _sql ; 
+
 			END IF ; -- case of inheriting geohistorical_object.geohistorical_object
 
 
-		IF activate_desactivate IS TRUE THEN
-			_sql := format('you asked to create foreign key on the table %I.%I regarding inheritance to geohistorical_object/normalised_name_alias, it is done',schema_name::text, table_name::text ); 
-		ELSE
-			_sql := format('you asked to delete foreign key on the table %I.%I regarding inheritance to geohistorical_object/normalised_name_alias, it is done',schema_name::text, table_name::text ); 
-		END IF;  
-		RETURN _sql;
+		RETURN format('table registered. This table was inheriting from geohistorical_object (%s), from geohistorical_relation (%s)! foreign key + index creation OK', _isobjb,_isrelationb);
 		END ; 
 	$BODY$
 LANGUAGE plpgsql  VOLATILE STRICT; 
-
--- 	SELECT f.*
--- 	FROM geohistorical_object.enable_disable_geohistorical_object(  'geohistorical_object'::regclass, 'test_geohistorical_object'::regclass, false) As f;
--- 
--- 
--- 	SELECT f.*
--- 	FROM geohistorical_object.enable_disable_geohistorical_object(  'geohistorical_object'::regclass, 'test_normalised_name_alias '::regclass, true) As f;
-
-
--- ALTER TABLE  geohistorical_object.test_geohistorical_object_3 DROP CONSTRAINT historical_source_short_name
--- ALTER TABLE geohistorical_object.test_geohistorical_object DROP CONSTRAINT numerical_origin_process_short_name;
- 
-
- --misc functions
  
  
 	DROP FUNCTION IF EXISTS geohistorical_object.clean_text(   it text ); 
