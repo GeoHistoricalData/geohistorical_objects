@@ -16,7 +16,7 @@ CREATE SCHEMA IF NOT EXISTS geohistorical_object ;
 --- Adding helper functions
 --------------------
 
-DROP FUNCTION IF EXISTS geohistorical_object.is_valid_source_json(   IN ijson json ); 
+DROP FUNCTION IF EXISTS geohistorical_object.is_valid_source_json(   IN ijson json ) CASCADE; 
 CREATE OR REPLACE FUNCTION geohistorical_object.is_valid_source_json(    IN ijson json )
 RETURNS boolean AS 
 	$BODY$
@@ -223,8 +223,8 @@ LANGUAGE plpgsql  IMMUTABLE STRICT;
 
 
 
-DROP FUNCTION IF EXISTS geohistorical_object.register_geohistorical_object_table(schema_name text, table_name regclass); 
-CREATE OR REPLACE FUNCTION geohistorical_object.register_geohistorical_object_table(schema_name text, table_name regclass)
+DROP FUNCTION IF EXISTS geohistorical_object.register_geohistorical_object_table(schema_name text, table_name text); 
+CREATE OR REPLACE FUNCTION geohistorical_object.register_geohistorical_object_table(schema_name text, table_name text)
 RETURNS text AS 
 	$BODY$
 		--@brief : this function takes a table name, check if it inherits from geohistorical_object or normalised_name_alias. If activate is true, add foregin key, else remove it 
@@ -240,11 +240,11 @@ RETURNS text AS
 			-- check if input table is in the list of tables that inherits from 'geohistorical_object' and/or from 'normalised_name_alias' 
 				SELECT children_table INTO _isobj
 				FROM  geohistorical_object.find_all_children_in_inheritance('geohistorical_object.geohistorical_object')
-				WHERE children_table = table_name::regclass::text
+				WHERE children_table = table_name::text
 				LIMIT 1 ;
 				SELECT children_table INTO _isrelation
 				FROM  geohistorical_object.find_all_children_in_inheritance('geohistorical_object.geohistorical_relation')
-				WHERE children_table = table_name::regclass::text
+				WHERE children_table = table_name::text
 				LIMIT 1 ;
 
 				_isobjb := _isobj IS NOT NULL; 
@@ -262,7 +262,7 @@ RETURNS text AS
 				REFERENCES geohistorical_object.historical_source (short_name) ; 
 				ALTER TABLE %1$s.%2$s ADD CONSTRAINT numerical_origin_process_short_name FOREIGN KEY (numerical_origin_process)
 				REFERENCES geohistorical_object.numerical_origin_process (short_name); ',schema_name, table_name );
-				raise notice 'ploup' ; 
+				--raise notice 'ploup' ; 
 				BEGIN
 				    EXECUTE _sql ; 
 				EXCEPTION
