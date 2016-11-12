@@ -1,7 +1,7 @@
 EXTENSION    = geohistorical_objects
 EXTVERSION   = $(shell grep default_version $(EXTENSION).control | sed -e "s/default_version[[:space:]]*=[[:space:]]*'\\([^']*\\)'/\\1/")
-DATA         = $(EXTENSION).sql
-DOCS         = $(wildcard *.md)
+DATA         = $(EXTENSION)--$(EXTVERSION).sql
+#DOCS         = $(wildcard *.md)
 PG_CONFIG    = pg_config
 
 all: $(EXTENSION)--$(EXTVERSION).sql
