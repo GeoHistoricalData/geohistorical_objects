@@ -1,5 +1,6 @@
 # geohistorical_object extension
 comment = 'Short extension to properly deal with geohistorical objects'
+requires = 'postgis, pgsfti, unaccent, pg_trgm'
 default_version = '1.0'
 module_pathname = '$libdir/geohistorical_object'
-relocatable = true
+relocatable = false
