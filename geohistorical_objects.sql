@@ -1,7 +1,7 @@
-﻿------------------------
+--------------------
 -- Remi Cura, 2016 , Projet Belle Epoque
 -- Geohistorical data project
-------------------------
+--------------------
 
 -- script to create postgres extension relativ to dealing with geohistorical objects
 
@@ -370,3 +370,4 @@ LANGUAGE plpgsql  VOLATILE STRICT;
 			$BODY$
 		LANGUAGE plpgsql  IMMUTABLE STRICT;  
 		--SELECT geohistorical_object.clean_text(  $$  5zer'ezer_ze ze'r $*ùzer ;   $$);
+
