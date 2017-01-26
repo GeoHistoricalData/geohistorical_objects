@@ -23,7 +23,7 @@ First, you obviously need [PostgreSQL](https://www.postgresql.org/) installed. F
 ## Install ##
 - Get the extension and copy the two extension files in the postgres extension folder:
 ~~~~
-git clone git@github.com:GeoHistoricalData/geohistorical_objects.git
+git clone https://github.com/GeoHistoricalData/geohistorical_objects
 cd geohistorical_objects
 sudo make install
 ~~~~
@@ -72,7 +72,7 @@ You have to register the newly created table (only required to do this once).
 Registering the table is important, it ensures that the link between objects and historical source are enforced, and it also creates indexes that are going to be essential to efficient usages.
 To register the table (only needed once), you use the function:
 ~~~~	
-SELECT geohistorical_object.enable_disable_geohistorical_object(  'the_ne_table_schema'::regclass, 'the_new_table_tablename'::regclass, true) ;
+SELECT geohistorical_object.register_geohistorical_object_table(  'the_ne_table_schema', 'the_new_table_tablename') ;
 ~~~~
 
 ### Use your new geohistorical object. ### 
